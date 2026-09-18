@@ -1,0 +1,23 @@
+from PIL import Image, ImageOps
+
+
+class ImageService:
+	@staticmethod
+	def prepare_for_ocr(
+		image: Image.Image,
+		scale: int = 2,
+	) -> Image.Image:
+		"""Prepare image for OCR."""
+		image = image.convert("L")
+		image = ImageOps.autocontrast(image)
+
+		if scale > 1:
+			image = image.resize(
+				(
+					image.width * scale,
+					image.height * scale,
+				),
+				Image.Resampling.LANCZOS,
+			)
+
+		return image
