@@ -1,9 +1,9 @@
 import logging
-from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 
-DEFAULT_LOG_FORMAT = ("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
+DEFAULT_LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
@@ -20,11 +20,11 @@ class ColorFormatter(logging.Formatter):
 
 	def format(self, record: logging.LogRecord) -> str:
 		message = super().format(record)
-
-		r, g, b = self.COLORS.get(record.levelno, (255, 255, 255),)
+		r, g, b = self.COLORS.get(record.levelno, (255, 255, 255))
 		color = f"\033[38;2;{r};{g};{b}m"
 
 		return f"{color}{message}{self.RESET}"
+
 
 def setup_logger(logs_dir: Path) -> None:
 	logs_dir.mkdir(parents=True, exist_ok=True)
@@ -38,23 +38,20 @@ def setup_logger(logs_dir: Path) -> None:
 
 	console_handler = logging.StreamHandler()
 	console_handler.setLevel(logging.INFO)
-	console_handler.setFormatter(ColorFormatter(
-		DEFAULT_LOG_FORMAT,
-		DATE_FORMAT,
-	))
+	console_handler.setFormatter(
+		ColorFormatter(DEFAULT_LOG_FORMAT, DATE_FORMAT)
+	)
 
 	file_handler = RotatingFileHandler(
 		logs_dir / "userbot.log",
-		maxBytes=5*2**20,
+		maxBytes=5 * 2**20,
 		backupCount=3,
 		encoding="utf-8",
 	)
-
 	file_handler.setLevel(logging.DEBUG)
-	file_handler.setFormatter(logging.Formatter(
-		DEFAULT_LOG_FORMAT,
-		DATE_FORMAT,
-	))
+	file_handler.setFormatter(
+		logging.Formatter(DEFAULT_LOG_FORMAT, DATE_FORMAT)
+	)
 
 	logger.addHandler(console_handler)
 	logger.addHandler(file_handler)

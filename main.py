@@ -1,39 +1,54 @@
+import asyncio
 import logging
 
-from hydrogram import Client
+from hydrogram import Client, idle
 
-from bot.settings import (
-        TELEGRAM_API_ID as TAID,
-        TELEGRAM_API_HASH as TAHASH,
-
-	LOGS_DIR,
-
-        SESSION,
-)
+from bot.database import create_tables
 from bot.logger import setup_logger
+from bot.services.code_runner import code_runner
+from bot.settings import (
+	LOGS_DIR,
+	SESSION,
+	TELEGRAM_API_HASH,
+	TELEGRAM_API_ID,
+	ensure_storage_dirs,
+)
 
 
-def main() -> None:
-	setup_logger(LOGS_DIR)
-
-	logger = logging.getLogger(__name__)
+setup_logger(LOGS_DIR)
+logger = logging.getLogger(__name__)
 
 
-	logger.info("Starting userbot")
+async def main() -> None:
+	ensure_storage_dirs()
+
+	if not TELEGRAM_API_ID or not TELEGRAM_API_HASH:
+		raise RuntimeError("TELEGRAM_API_ID and TELEGRAM_API_HASH must be set")
 
 	app = Client(
-	        str(SESSION),
-        	api_id=TAID,
-        	api_hash=TAHASH,
-		plugins={
-			"root": "bot.handlers",
-		},
+		SESSION,
+		api_id=TELEGRAM_API_ID,
+		api_hash=TELEGRAM_API_HASH,
+		plugins={"root": "bot/handlers"},
 	)
 
-	app.run()
+	code_runner.set_client(app)
+	create_tables()
 
-	logger.info("Userbot stopped")
+	await app.start()
+	logger.info("Userbot started")
+
+	if await code_runner.start():
+		logger.info("Code runner is ready")
+	else:
+		logger.error("Code runner is unavailable")
+
+	try:
+		await idle()
+	finally:
+		await code_runner.close()
+		await app.stop()
 
 
 if __name__ == "__main__":
-	main()
+	asyncio.run(main())

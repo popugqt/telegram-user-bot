@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+import sys
+from pathlib import Path
+
+
+def main() -> int:
+	if len(sys.argv) != 2:
+		print("usage: brainfuck <file>", file=sys.stderr)
+		return 2
+
+	path = Path(sys.argv[1])
+
+	try:
+		program = path.read_text(encoding="utf-8")
+	except OSError as error:
+		print(error, file=sys.stderr)
+		return 1
+
+	brackets: dict[int, int] = {}
+	stack: list[int] = []
+
+	for index, char in enumerate(program):
+		if char == "[":
+			stack.append(index)
+		elif char == "]":
+			if not stack:
+				print("unmatched ]", file=sys.stderr)
+				return 1
+			start = stack.pop()
+			brackets[start] = index
+			brackets[index] = start
+
+	if stack:
+		print("unmatched [", file=sys.stderr)
+		return 1
+
+	memory = bytearray(30000)
+	pointer = 0
+	instruction = 0
+
+	while instruction < len(program):
+		char = program[instruction]
+
+		if char == ">":
+			pointer = (pointer + 1) % len(memory)
+		elif char == "<":
+			pointer = (pointer - 1) % len(memory)
+		elif char == "+":
+			memory[pointer] = (memory[pointer] + 1) % 256
+		elif char == "-":
+			memory[pointer] = (memory[pointer] - 1) % 256
+		elif char == ".":
+			sys.stdout.write(chr(memory[pointer]))
+			sys.stdout.flush()
+		elif char == ",":
+			value = sys.stdin.buffer.read(1)
+			memory[pointer] = value[0] if value else 0
+		elif char == "[" and memory[pointer] == 0:
+			instruction = brackets[instruction]
+		elif char == "]" and memory[pointer] != 0:
+			instruction = brackets[instruction]
+
+		instruction += 1
+
+	return 0
+
+
+if __name__ == "__main__":
+	raise SystemExit(main())
